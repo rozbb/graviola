@@ -1,0 +1,30 @@
+# Variable-latency instructions that are known to operate on PUBLIC data.
+#
+# Format:  category | symbol substring | why the operands are public
+#
+# `category` is a mnemonic as the scan reports it (`non-doit:popcnt`), `div-libcall`, or `*` for
+# any non-DOIT instruction. Use `*` only for code that never sees ML-KEM's data at all.
+#
+# Each line is a security claim. A hit is only safe if the *operands* cannot depend on secret
+# data; the scanner sees instructions, not dataflow, so it cannot check that for you. Before
+# adding a line, read the source and convince yourself, then say here what convinced you.
+#
+# Symbols are v0 mangling as llvm-objdump demangles it, which is what scan-instrs.py pins the
+# builds to. Copy the symbol from a FAIL report rather than writing it out. An entry that stops
+# matching fails the scan, so the list cannot quietly go stale.
+#
+# Do not add an entry whose pattern covers a function that touches secrets, even if the one hit
+# in it today is public: it would hide the next one. `--selftest` enforces this for the symbols in
+# ALLOWLIST_MUST_NOT_COVER in scan-instrs.py. Change the source instead.
+
+# getrandom opens /dev/urandom once and publishes the file descriptor with a compare-exchange. The
+# operands are the descriptor and its "uninitialized" sentinel.
+non-doit:cmpxchg | getrandom::backends::use_file::open_or_wait | file descriptor initialization
+
+# Rejection sampling of the matrix A from XOF(rho, j, i), in src/low/x86_64/mlkem_rej_uniform_vartime.rs
+# (PEXT at line 100 compacts the accepted lanes, POPCNT at line 106 counts them). `rho` is public:
+# it is part of the encapsulation key. These two functions sample nothing else.
+non-doit:pext | <graviola::mid::mlkem768::Coeffs<2304, graviola::mid::mlkem768::Ntt>>::_sample_poly_ntt_quad | XOF output of the public seed rho
+non-doit:popcnt | <graviola::mid::mlkem768::Coeffs<2304, graviola::mid::mlkem768::Ntt>>::_sample_poly_ntt_quad | XOF output of the public seed rho
+non-doit:pext | <graviola::mid::mlkem768::Shake128ForMlKem>::sample | XOF output of the public seed rho
+non-doit:popcnt | <graviola::mid::mlkem768::Shake128ForMlKem>::sample | XOF output of the public seed rho

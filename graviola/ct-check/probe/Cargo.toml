@@ -1,0 +1,19 @@
+[package]
+name = "ct-scan-probe"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "Links graviola's ML-KEM-768 API so the instruction scanner sees exactly the code it reaches"
+
+# Its own workspace, so it needs no entry in graviola's. scan-instrs.py seeds this crate's
+# Cargo.lock from the workspace's before every build, so the dependencies scanned are the locked
+# ones.
+[workspace]
+
+# A cdylib, not an rlib: linking with --gc-sections drops every function ML-KEM cannot reach, so
+# the rest of graviola (RSA, ECC, AES-GCM, ...) is not scanned.
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+graviola = { path = "../.." }

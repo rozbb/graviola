@@ -8,6 +8,8 @@ readme = "README.md"
 description = "graviola is a modern, fast cryptography library"
 categories = ["network-programming", "cryptography"]
 rust-version = "1.89"
+# The constant-time instruction scan is a dev-only tool.
+exclude = ["/ct-check", "/ct-check.sh"]
 
 [features]
 default = []
